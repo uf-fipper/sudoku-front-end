@@ -1,109 +1,132 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { newSudoku } from '@/api/sudoku';
+import { newGame, setValue } from '@/api/sudoku';
+import type { SudokuGamePublicVo } from '@/models/vo/SudokuGameVo';
 
-class SudokuValue {
+interface SudokuValue {
   value: number;
   isInvalid: boolean;
-
-  constructor(value: number, isInvalid?: boolean) {
-    this.value = value;
-    this.isInvalid = isInvalid ?? false;
-  }
+  isBaseIndex: boolean;
 }
 
-const isShow = ref(false);
+interface Game {
+  gameId: string;
+  sudokuValues: SudokuValue[][];
+  // 数独区域点击的位置
+  valueSelectedItem?: [number, number];
+  // 0是删除
+  bottomSelectedItem?: number;
+  baseIndexs: Set<string>;
+}
 
-// const sudokuValuesRaw = [
-//   [1, 2, 3, 4, 5, 6, 7, 8, 9],
-//   [1, 2, 3, 4, 5, 6, 7, 8, 9],
-//   [1, 2, 3, 4, 5, 6, 7, 8, 9],
-//   [1, 2, 3, 4, 5, 6, 7, 8, 9],
-//   [1, 2, 3, 4, 5, 6, 7, 8, 9],
-//   [1, 2, 3, 4, 5, 6, 7, 8, 9],
-//   [1, 2, 3, 4, 5, 6, 7, 8, 9],
-//   [1, 2, 3, 4, 5, 6, 7, 8, 9],
-//   [1, 2, 3, 4, 5, 6, 7, 8, 9],
-// ];
-const sudokuValuesRaw = ref<number[][] | null>(null);
+const game = ref<Game>();
 
-const sudokuValues = ref<SudokuValue[][] | null>(null);
+function resetGame(newGame: SudokuGamePublicVo) {
+  const valueSelectedItem = game.value?.valueSelectedItem;
+  const bottomSelectedItem = game.value?.bottomSelectedItem;
+  const baseIndexs =
+    game.value?.baseIndexs ?? new Set(newGame.baseIndexs.map((item) => `${item[0]},${item[1]}`));
 
-// 数独区域点击的位置
-const valueSelectedItem = ref<[number, number] | null>(null);
-
-// 0是删除
-const bottomSelectedItem = ref<number | null>(null);
+  game.value = {
+    gameId: newGame.gameId,
+    sudokuValues: newGame.board.map((line) =>
+      line.map((item) => {
+        return { value: item, isInvalid: false, isBaseIndex: false };
+      }),
+    ),
+    valueSelectedItem,
+    bottomSelectedItem,
+    baseIndexs,
+  };
+  for (let i = 0; i < 9; i++) {
+    for (let j = 0; j < 9; j++) {
+      if (isBaseIndex(i, j)) {
+        game.value.sudokuValues[i][j].isBaseIndex = true;
+      }
+    }
+  }
+  handleInvalid();
+}
 
 function startGame() {
-  newSudoku().then((res) => {
-    isShow.value = true;
-    console.log(res);
-    sudokuValuesRaw.value = res.data.data.board;
-    console.log(sudokuValuesRaw.value);
-    sudokuValues.value = sudokuValuesRaw.value!.map((line) =>
-      line.map((item) => new SudokuValue(item, false)),
-    );
-    handleInvalid();
+  newGame().then((res) => {
+    resetGame(res.data.data);
   });
 }
 
+function isBaseIndex(row: number, col: number): boolean {
+  if (game.value === undefined) return false;
+  return game.value!.baseIndexs.has(`${row},${col}`);
+}
+
 function isValueSelected(row: number, col: number) {
-  return valueSelectedItem.value?.[0] === row && valueSelectedItem.value?.[1] === col;
+  return game.value?.valueSelectedItem?.[0] === row && game.value?.valueSelectedItem?.[1] === col;
 }
 
 function isValueSelectedOther(row: number, col: number) {
   return (
     !isValueSelected(row, col) &&
-    (valueSelectedItem.value?.[0] === row || valueSelectedItem.value?.[1] === col)
+    (game.value?.valueSelectedItem?.[0] === row || game.value?.valueSelectedItem?.[1] === col)
   );
 }
 
 function handleClick(row: number, col: number) {
-  if (sudokuValues.value === null) return;
-  if (bottomSelectedItem.value === 0) {
+  if (game.value === undefined) return;
+  if (isBaseIndex(row, col)) {
+    return;
   }
-  if (bottomSelectedItem.value !== null) {
-    sudokuValues.value[row][col].value = bottomSelectedItem.value;
+  if (game.value.bottomSelectedItem !== undefined) {
+    setValue({
+      i: row,
+      j: col,
+      gameId: game.value.gameId,
+      value: game.value.bottomSelectedItem,
+    }).then((res) => {
+      resetGame(res.data.data.game);
+    });
   }
-  if (valueSelectedItem.value?.[0] === row && valueSelectedItem.value?.[1] === col) {
-    valueSelectedItem.value = null;
+  if (
+    game.value.bottomSelectedItem === undefined &&
+    game.value.valueSelectedItem?.[0] === row &&
+    game.value.valueSelectedItem?.[1] === col
+  ) {
+    game.value.valueSelectedItem = undefined;
   } else {
-    valueSelectedItem.value = [row, col];
+    game.value.valueSelectedItem = [row, col];
   }
   // 这里要判断是否有重复的数字，有则标红
   handleInvalid();
 }
 
 function handleInvalid() {
-  if (sudokuValues.value === null) return;
+  if (game.value === undefined) return;
   console.log('handleInvalid');
   for (let i = 0; i < 9; i++) {
     for (let j = 0; j < 9; j++) {
       if (checkInvalidNumberOnce(i, j)) {
         console.log('true');
-        sudokuValues.value[i][j].isInvalid = true;
+        game.value.sudokuValues[i][j].isInvalid = true;
       } else {
         console.log('false');
-        sudokuValues.value[i][j].isInvalid = false;
+        game.value.sudokuValues[i][j].isInvalid = false;
       }
     }
   }
 }
 
 function checkInvalidNumberOnce(row: number, col: number): boolean {
-  if (sudokuValues.value === null) return false;
-  const value = sudokuValues.value[row][col].value;
+  if (game.value === undefined) return false;
+  const value = game.value.sudokuValues[row][col].value;
   if (value === 0) return false;
   // 行
   for (let j = 0; j < 9; j++) {
-    if (j !== col && sudokuValues.value[row][j].value === value) {
+    if (j !== col && game.value.sudokuValues[row][j].value === value) {
       return true;
     }
   }
   // 列
   for (let i = 0; i < 9; i++) {
-    if (i !== row && sudokuValues.value[i][col].value === value) {
+    if (i !== row && game.value.sudokuValues[i][col].value === value) {
       return true;
     }
   }
@@ -112,7 +135,7 @@ function checkInvalidNumberOnce(row: number, col: number): boolean {
   const colStart = Math.floor(col / 3) * 3;
   for (let i = rowStart; i < rowStart + 3; i++) {
     for (let j = colStart; j < colStart + 3; j++) {
-      if (i !== row && j !== col && sudokuValues.value[i][j].value === value) {
+      if (i !== row && j !== col && game.value.sudokuValues[i][j].value === value) {
         return true;
       }
     }
@@ -121,25 +144,27 @@ function checkInvalidNumberOnce(row: number, col: number): boolean {
 }
 
 function bottomSelectItem(item: number) {
-  if (bottomSelectedItem.value === item) {
-    bottomSelectedItem.value = null;
+  if (game.value === undefined) return;
+  if (game.value.bottomSelectedItem === item) {
+    game.value.bottomSelectedItem = undefined;
     return;
   }
-  bottomSelectedItem.value = item;
+  game.value.bottomSelectedItem = item;
 }
 </script>
 
 <template>
-  <div v-if="isShow">
+  <div v-if="game != undefined">
     <div class="sudoku-view">
       <table>
         <tbody>
-          <tr v-for="(line, i) in sudokuValues" :key="`sudoku-line-${i}`">
+          <tr v-for="(line, i) in game.sudokuValues" :key="`sudoku-line-${i}`">
             <td v-for="(item, j) in line" :key="`sudoku-item-${i}-${j}`">
               <button
                 :class="{
                   'value-selected': isValueSelected(i, j),
                   'value-selected-other': isValueSelectedOther(i, j),
+                  'base-index': item.isBaseIndex,
                   invalid: item.isInvalid,
                 }"
                 @click="handleClick(i, j)"
@@ -163,7 +188,7 @@ function bottomSelectItem(item: number) {
           >
             <td v-for="i in tds" :key="`bottom-item-${i}`">
               <button
-                :class="{ 'bottom-selected': i === bottomSelectedItem }"
+                :class="{ 'bottom-selected': i === game.bottomSelectedItem }"
                 @click="() => bottomSelectItem(i)"
               >
                 {{ i }}
@@ -190,6 +215,11 @@ function bottomSelectItem(item: number) {
 
 .value-selected-other {
   background-color: aquamarine;
+}
+
+.base-index {
+  /**加粗 */
+  font-weight: bold;
 }
 
 .invalid {
