@@ -43,8 +43,11 @@ loadGames(currentPage.value);
           :key="game.gameId"
           @click="handleGameClick(game.gameId)"
           class="game-item"
+          :class="{ 'game-win': game.isWin, 'game-lose': !game.isWin }"
         >
-          游戏ID: {{ game.gameId }}
+          <div>游戏ID: {{ game.gameId }}</div>
+          <div>Seed: {{ game.seed }}</div>
+          <div>状态: {{ game.isWin ? '胜利' : '未完成' }}</div>
         </li>
       </ul>
       <div class="pagination">
@@ -81,9 +84,18 @@ loadGames(currentPage.value);
   margin: 5px 0;
   border: 1px solid #ccc;
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 .game-item:hover {
   background-color: #f0f0f0;
+}
+.game-win {
+  border-left: 4px solid #4caf50;
+}
+.game-lose {
+  border-left: 4px solid #f44336;
 }
 .pagination {
   margin-top: 20px;

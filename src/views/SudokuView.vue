@@ -2,9 +2,10 @@
 import { ref } from 'vue';
 import { getGame, newGame, setValue } from '@/api/sudoku';
 import type { SudokuGamePublicVo } from '@/models/vo/SudokuGameVo';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
 const route = useRoute();
+const router = useRouter();
 const gameId = route.query.gameId as string;
 
 interface SudokuValue {
@@ -21,6 +22,7 @@ interface Game {
   // 0是删除
   bottomSelectedItem?: number;
   baseIndexs: Set<string>;
+  rawGame: SudokuGamePublicVo;
 }
 
 const game = ref<Game>();
@@ -41,6 +43,7 @@ function resetGame(newGame: SudokuGamePublicVo) {
     valueSelectedItem,
     bottomSelectedItem,
     baseIndexs,
+    rawGame: newGame,
   };
   for (let i = 0; i < 9; i++) {
     for (let j = 0; j < 9; j++) {
@@ -49,6 +52,7 @@ function resetGame(newGame: SudokuGamePublicVo) {
       }
     }
   }
+  console.log(game.value.sudokuValues);
   handleInvalid();
 }
 
@@ -68,7 +72,7 @@ function startGame() {
 
 function isBaseIndex(row: number, col: number): boolean {
   if (game.value === undefined) return false;
-  return game.value!.baseIndexs.has(`${row},${col}`);
+  return game.value.baseIndexs.has(`${row},${col}`);
 }
 
 function isValueSelected(row: number, col: number) {
@@ -163,11 +167,24 @@ function bottomSelectItem(item: number) {
   }
   game.value.bottomSelectedItem = item;
 }
+
+function goBack() {
+  router.push('/sudoku-list');
+}
 </script>
 
 <template>
   <div v-if="game != undefined">
-    <div>游戏id: {{ game.gameId }}</div>
+    <div class="game-header">
+      <button @click="goBack" class="back-button">返回列表</button>
+      <div class="game-info">
+        <div>游戏ID: {{ game.gameId }}</div>
+        <div>Seed: {{ game.rawGame.seed }}</div>
+        <div :class="{ 'status-win': game.rawGame.isWin, 'status-lose': !game.rawGame.isWin }">
+          状态: {{ game.rawGame.isWin ? '胜利' : '未完成' }}
+        </div>
+      </div>
+    </div>
     <div class="sudoku-view">
       <table>
         <tbody>
@@ -182,14 +199,14 @@ function bottomSelectItem(item: number) {
                 }"
                 @click="handleClick(i, j)"
               >
-                <span>{{ item.value }}</span>
+                <span v-if="item.value !== 0">{{ item.value }}</span>
               </button>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
-    <div>
+    <div class="bottom-buttons">
       <table>
         <tbody>
           <tr
@@ -204,7 +221,7 @@ function bottomSelectItem(item: number) {
                 :class="{ 'bottom-selected': i === game.bottomSelectedItem }"
                 @click="() => bottomSelectItem(i)"
               >
-                {{ i }}
+                {{ i === 0 ? '<' : i }}
               </button>
             </td>
           </tr>
@@ -238,6 +255,7 @@ function bottomSelectItem(item: number) {
   padding: 0;
   border: 1px solid #ccc;
   position: relative;
+  width: 11.11%; /* 确保每个格子宽度一致 */
 }
 
 .sudoku-view td:nth-child(3n) {
@@ -263,6 +281,7 @@ function bottomSelectItem(item: number) {
   display: flex;
   align-items: center;
   justify-content: center;
+  margin: 0;
 }
 
 .sudoku-view button:hover {
