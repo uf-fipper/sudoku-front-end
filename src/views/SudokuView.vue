@@ -88,10 +88,7 @@ function isValueSelectedOther(row: number, col: number) {
 
 function handleClick(row: number, col: number) {
   if (game.value === undefined) return;
-  if (isBaseIndex(row, col)) {
-    return;
-  }
-  if (game.value.bottomSelectedItem !== undefined) {
+  if (game.value.bottomSelectedItem !== undefined && !isBaseIndex(row, col)) {
     setValue({
       i: row,
       j: col,
