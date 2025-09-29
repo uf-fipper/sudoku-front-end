@@ -227,12 +227,21 @@ function bottomSelectItem(item: number) {
   border-collapse: collapse;
   width: 100%;
   margin-bottom: 20px;
+  border: 2px solid #333;
+}
+
+.sudoku-view tr:nth-child(3n) {
+  border-bottom: 2px solid #333;
 }
 
 .sudoku-view td {
   padding: 0;
-  border: 1px solid #ddd;
+  border: 1px solid #ccc;
   position: relative;
+}
+
+.sudoku-view td:nth-child(3n) {
+  border-right: 2px solid #333;
 }
 
 .sudoku-view td::after {
