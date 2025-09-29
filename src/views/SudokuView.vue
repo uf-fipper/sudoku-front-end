@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { newGame, setValue } from '@/api/sudoku';
+import { getGame, newGame, setValue } from '@/api/sudoku';
 import type { SudokuGamePublicVo } from '@/models/vo/SudokuGameVo';
+import { useRoute } from 'vue-router';
+
+const route = useRoute();
+const gameId = route.query.gameId as string;
 
 interface SudokuValue {
   value: number;
@@ -49,9 +53,17 @@ function resetGame(newGame: SudokuGamePublicVo) {
 }
 
 function startGame() {
-  newGame().then((res) => {
-    resetGame(res.data.data);
-  });
+  if (typeof gameId === 'string' && gameId !== '') {
+    getGame(gameId).then((res) => {
+      console.log(res);
+      resetGame(res.data.data);
+    });
+  } else {
+    newGame().then((res) => {
+      console.log(res);
+      resetGame(res.data.data);
+    });
+  }
 }
 
 function isBaseIndex(row: number, col: number): boolean {
@@ -155,6 +167,7 @@ function bottomSelectItem(item: number) {
 
 <template>
   <div v-if="game != undefined">
+    <div>游戏id: {{ game.gameId }}</div>
     <div class="sudoku-view">
       <table>
         <tbody>
@@ -205,24 +218,88 @@ function bottomSelectItem(item: number) {
 </template>
 
 <style scoped>
-.bottom-selected {
-  background-color: aqua;
+.sudoku-view {
+  margin: 20px auto;
+  max-width: 500px;
 }
 
-.value-selected {
-  background-color: aqua;
+.sudoku-view table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 20px;
 }
 
-.value-selected-other {
-  background-color: aquamarine;
+.sudoku-view td {
+  padding: 0;
+  border: 1px solid #ddd;
+  position: relative;
 }
 
-.base-index {
-  /**加粗 */
+.sudoku-view td::after {
+  content: '';
+  display: block;
+  padding-bottom: 100%;
+}
+
+.sudoku-view button {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: #fff;
+  font-size: 1.5em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sudoku-view button:hover {
+  background: #f5f5f5;
+}
+
+.sudoku-view button.value-selected {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.sudoku-view button.value-selected-other {
+  background: #f5f5f5;
+}
+
+.sudoku-view button.base-index {
+  background: #e8f5e9;
   font-weight: bold;
 }
 
-.invalid {
-  color: red;
+.sudoku-view button.invalid {
+  color: #f44336;
+}
+
+.bottom-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.bottom-buttons button {
+  padding: 10px 15px;
+  font-size: 1em;
+  border: 1px solid #ddd;
+  background: #fff;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.bottom-buttons button:hover {
+  background: #f5f5f5;
+}
+
+.bottom-buttons button.bottom-selected {
+  background: #e3f2fd;
+  color: #1976d2;
 }
 </style>
