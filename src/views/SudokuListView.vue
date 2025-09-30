@@ -25,7 +25,7 @@ async function loadGames(page: number) {
 }
 
 function handleGameClick(gameId: string) {
-  router.push(`/sudoku?gameId=${gameId}`);
+  router.push(`/sudoku-ws?gameId=${gameId}`);
 }
 
 // 初始化加载第一页数据

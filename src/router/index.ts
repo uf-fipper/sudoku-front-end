@@ -23,6 +23,11 @@ const router = createRouter({
       component: () => import('../views/SudokuView.vue'),
     },
     {
+      path: '/sudoku-ws',
+      name: 'sudoku-ws',
+      component: () => import('../views/SudokuWsView.vue'),
+    },
+    {
       path: '/sudoku-list',
       name: 'sudoku-list',
       component: () => import('../views/SudokuListView.vue'),

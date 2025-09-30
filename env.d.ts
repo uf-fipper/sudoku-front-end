@@ -7,5 +7,7 @@ declare module '*.vue' {
 }
 
 interface ImportMetaEnv {
-  readonly VITE_BASE_URL: string;
+  readonly VITE_BASE_HOST: string;
+  readonly VITE_BASE_HTTP_PROTOCOL: string;
+  readonly VITE_BASE_WS_PROTOCOL: string;
 }

@@ -5,9 +5,11 @@ import type { SudokuListVo } from '@/models/vo/SudokuListVo';
 import type { SudokuSetValueVo } from '@/models/vo/SudokuSetValueVo';
 import axios, { type AxiosResponse } from 'axios';
 
-const baseUrl: string = import.meta.env.VITE_BASE_URL;
+const baseHost: string = import.meta.env.VITE_BASE_HOST;
+const baseHttpUrl = `${import.meta.env.VITE_BASE_HTTP_PROTOCOL}://${baseHost}`;
+const baseWsUrl = `${import.meta.env.VITE_BASE_WS_PROTOCOL}://${baseHost}`;
 
-const client = axios.create({ baseURL: baseUrl });
+const client = axios.create({ baseURL: baseHttpUrl });
 
 export function newGame(): Promise<AxiosResponse<BaseVo<SudokuGamePublicVo>>> {
   return client.post(`Sudoku/NewGame`);
@@ -27,4 +29,9 @@ export function setValue(dto: SudokuSetValueDto): Promise<AxiosResponse<BaseVo<S
       'Content-Type': 'application/json',
     },
   });
+}
+
+export function wsConnect(gameId: string): WebSocket {
+  const wsUrl = baseWsUrl;
+  return new WebSocket(`${wsUrl}/Sudoku/Connect?gameId=${gameId}`);
 }
