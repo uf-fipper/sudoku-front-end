@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { getGameList } from '@/api/sudoku';
+import { getGameList, newGame } from '@/api/sudoku';
 import { useRouter } from 'vue-router';
 import type { SudokuGamePublicVo } from '@/models/vo/SudokuGameVo';
 import type { PageDataVo } from '@/models/vo/PageDataVo';
@@ -28,13 +28,19 @@ function handleGameClick(gameId: string) {
   router.push(`/sudoku-ws?gameId=${gameId}`);
 }
 
+function newGameClick() {
+  newGame().then((response) => {
+    router.push(`/sudoku-ws?gameId=${response.data.data.gameId}`);
+  });
+}
+
 // 初始化加载第一页数据
 loadGames(currentPage.value);
 </script>
 
 <template>
   <div class="sudoku-list-view">
-    <h1>数独游戏大厅</h1>
+    <h1>数独游戏大厅 <button class="new-game-button" @click="newGameClick">新游戏</button></h1>
     <div v-if="isLoading">加载中...</div>
     <div v-else>
       <ul>
@@ -102,5 +108,21 @@ loadGames(currentPage.value);
   display: flex;
   justify-content: center;
   gap: 10px;
+}
+
+.new-game-button {
+  padding: 8px 16px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1em;
+  transition: background-color 0.3s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.new-game-button:hover {
+  background-color: #45a049;
 }
 </style>
