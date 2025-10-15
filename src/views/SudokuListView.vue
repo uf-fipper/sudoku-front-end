@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { getGameList, newGame } from '@/api/sudoku';
+import { getGameList } from '@/api/sudoku';
 import { useRouter } from 'vue-router';
 import type { SudokuGamePublicVo } from '@/models/vo/SudokuGameVo';
 import type { PageDataVo } from '@/models/vo/PageDataVo';
+import NewGameForm from '@/components/NewGameForm.vue';
+import ListBox from '@/components/ListBox.vue';
 
 const router = useRouter();
 const games = ref<SudokuGamePublicVo[]>([]);
 const pageData = ref<PageDataVo>({ page: 1, pageSize: 10, total: 0, totalPage: 1 });
 const currentPage = ref(1);
 const isLoading = ref(false);
+const showNewGameForm = ref(false);
 
 async function loadGames(page: number) {
   isLoading.value = true;
@@ -29,9 +32,7 @@ function handleGameClick(gameId: string) {
 }
 
 function newGameClick() {
-  newGame().then((response) => {
-    router.push(`/sudoku-ws?gameId=${response.data.data.gameId}`);
-  });
+  showNewGameForm.value = true;
 }
 
 // 初始化加载第一页数据
@@ -41,6 +42,10 @@ loadGames(currentPage.value);
 <template>
   <div class="sudoku-list-view">
     <h1>数独游戏大厅 <button class="new-game-button" @click="newGameClick">新游戏</button></h1>
+    <new-game-form
+      v-if="showNewGameForm"
+      @cancel-new-game-form="showNewGameForm = false"
+    ></new-game-form>
     <div v-if="isLoading">加载中...</div>
     <div v-else>
       <ul>
@@ -51,9 +56,7 @@ loadGames(currentPage.value);
           class="game-item"
           :class="{ 'game-win': game.isWin, 'game-lose': !game.isWin }"
         >
-          <div>游戏ID: {{ game.gameId }}</div>
-          <div>Seed: {{ game.seed }}</div>
-          <div>状态: {{ game.isWin ? '胜利' : '未完成' }}</div>
+          <list-box :game="game"></list-box>
         </li>
       </ul>
       <div class="pagination">
@@ -66,7 +69,7 @@ loadGames(currentPage.value);
         >
           上一页
         </button>
-        <span>第 {{ currentPage }} 页</span>
+        <span>第 {{ currentPage }} 页，共 {{ pageData.totalPage }} 页</span>
         <button
           @click="
             currentPage++;
