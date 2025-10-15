@@ -15,6 +15,7 @@ interface SudokuValue {
   value: number;
   isInvalid: boolean;
   isBaseIndex: boolean;
+  smallNumbers: number[];
 }
 
 interface Game {
@@ -24,6 +25,7 @@ interface Game {
   bottomSelectedItem?: number;
   baseIndexs: Set<string>;
   rawGame: SudokuGamePublicVo;
+  isSmallNumberMode: boolean;
 }
 
 const game = ref<Game>();
@@ -34,19 +36,31 @@ function resetGame(newGame: SudokuGamePublicVo) {
   const bottomSelectedItem = game.value?.bottomSelectedItem;
   const baseIndexs =
     game.value?.baseIndexs ?? new Set(newGame.baseIndexs.map((item) => `${item[0]},${item[1]}`));
+  const size = newGame.board.length;
 
-  game.value = {
+  const newGameValue: Game = {
     gameId: newGame.gameId,
     sudokuValues: newGame.board.map((line) =>
       line.map((item) => {
-        return { value: item, isInvalid: false, isBaseIndex: false };
+        return { value: item, isInvalid: false, isBaseIndex: false, smallNumbers: [] };
       }),
     ),
     valueSelectedItem,
     bottomSelectedItem,
     baseIndexs,
     rawGame: newGame,
+    isSmallNumberMode: false,
   };
+  if (game.value !== undefined) {
+    for (let i = 0; i < size; i++) {
+      for (let j = 0; j < size; j++) {
+        if (newGame.board[i][j] === 0) {
+          newGameValue.sudokuValues[i][j].smallNumbers = game.value.sudokuValues[i][j].smallNumbers;
+        }
+      }
+    }
+  }
+  game.value = newGameValue;
   for (let i = 0; i < 9; i++) {
     for (let j = 0; j < 9; j++) {
       if (isBaseIndex(i, j)) {
@@ -95,17 +109,32 @@ function isValueSelectedOther(row: number, col: number) {
 function handleClick(row: number, col: number) {
   if (game.value === undefined) return;
   if (game.value.bottomSelectedItem !== undefined && !isBaseIndex(row, col)) {
-    socket?.send(
-      JSON.stringify({
-        type: 'SetValue',
-        data: {
-          gameId: game.value.gameId,
-          i: row,
-          j: col,
-          value: game.value.bottomSelectedItem,
-        },
-      }),
-    );
+    if (game.value.isSmallNumberMode) {
+      // 小数字模式
+      const selectedNumber = game.value.bottomSelectedItem;
+      const smallNumbers = game.value.sudokuValues[row][col].smallNumbers;
+      const index = smallNumbers.indexOf(selectedNumber);
+      if (selectedNumber === 0) {
+      }
+      if (index === -1) {
+        smallNumbers.push(selectedNumber);
+      } else {
+        smallNumbers.splice(index, 1);
+      }
+    } else {
+      // 大数字模式
+      socket?.send(
+        JSON.stringify({
+          type: 'SetValue',
+          data: {
+            gameId: game.value.gameId,
+            i: row,
+            j: col,
+            value: game.value.bottomSelectedItem,
+          },
+        }),
+      );
+    }
   }
   if (
     game.value.bottomSelectedItem === undefined &&
@@ -163,6 +192,11 @@ function bottomSelectItem(item: number) {
   game.value.bottomSelectedItem = item;
 }
 
+function toggleSmallNumberMode() {
+  if (game.value === undefined) return;
+  game.value.isSmallNumberMode = !game.value.isSmallNumberMode;
+}
+
 function goBack() {
   router.push('/sudoku-list');
 }
@@ -205,6 +239,20 @@ onUnmounted(() => {
                 @click="handleClick(i, j)"
               >
                 <span v-if="item.value !== 0">{{ item.value }}</span>
+                <div v-else class="small-numbers">
+                  <div v-for="num in [1, 2, 3]" :key="`small-${num}`" class="small-number-row">
+                    <span v-if="item.smallNumbers.includes(num)">{{ num }}</span>
+                    <span v-else>&nbsp;</span>
+                  </div>
+                  <div v-for="num in [4, 5, 6]" :key="`small-${num}`" class="small-number-row">
+                    <span v-if="item.smallNumbers.includes(num)">{{ num }}</span>
+                    <span v-else>&nbsp;</span>
+                  </div>
+                  <div v-for="num in [7, 8, 9]" :key="`small-${num}`" class="small-number-row">
+                    <span v-if="item.smallNumbers.includes(num)">{{ num }}</span>
+                    <span v-else>&nbsp;</span>
+                  </div>
+                </div>
               </button>
             </td>
           </tr>
@@ -212,6 +260,11 @@ onUnmounted(() => {
       </table>
     </div>
     <div class="bottom-buttons">
+      <div class="mode-toggle">
+        <button @click="toggleSmallNumberMode" class="mode-button">
+          {{ game.isSmallNumberMode ? '小' : '大' }}
+        </button>
+      </div>
       <table>
         <tbody>
           <tr
@@ -287,6 +340,25 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   margin: 0;
+}
+
+.small-numbers {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  width: 100%;
+  height: 100%;
+  font-size: 0.6em;
+  gap: 1px;
+  padding: 2px;
+}
+
+.small-number-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  min-width: 0;
 }
 
 .sudoku-view button:hover {
