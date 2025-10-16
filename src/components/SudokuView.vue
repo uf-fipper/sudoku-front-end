@@ -2,17 +2,21 @@
 import SudokuViewItem from './SudokuViewItem.vue';
 import { type SudokuValue } from './SudokuViewItem.vue';
 
-const { sudokuValues, valueSelectedItem, handleClick } = defineProps<{
+const { sudokuValues, valueSelectedItem, selectedValue, handleClick } = defineProps<{
   sudokuValues: SudokuValue[][];
   valueSelectedItem?: [number, number];
+  selectedValue?: number;
   handleClick?: (i: number, j: number) => void;
 }>();
 
-function isValueSelected(row: number, col: number) {
-  return valueSelectedItem?.[0] === row && valueSelectedItem?.[1] === col;
+function isValueSelected(row: number, col: number): boolean {
+  return (
+    valueSelectedItem !== undefined && valueSelectedItem[0] === row && valueSelectedItem[1] === col
+  );
 }
 
-function isValueSelectedOther(row: number, col: number) {
+function isValueSelectedOther(row: number, col: number): boolean {
+  if (selectedValue === undefined || selectedValue === 0) return false;
   return (
     !isValueSelected(row, col) && (valueSelectedItem?.[0] === row || valueSelectedItem?.[1] === col)
   );
@@ -29,6 +33,10 @@ function isValueSelectedOther(row: number, col: number) {
               :item="item"
               :is-value-selected="isValueSelected(i, j)"
               :is-value-selected-other="isValueSelectedOther(i, j)"
+              :is-other-selected-number="
+                (i !== valueSelectedItem?.[0] || j !== valueSelectedItem?.[1]) &&
+                item.value === selectedValue
+              "
               @click="() => handleClick?.(i, j)"
             ></SudokuViewItem>
           </td>

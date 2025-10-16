@@ -8,8 +8,18 @@ export interface SudokuValue {
 
 defineProps<{
   item: SudokuValue;
+  /**
+   * 是否选中
+   */
   isValueSelected: boolean;
+  /**
+   * 选中的数是否处于同一行或同一列
+   */
   isValueSelectedOther: boolean;
+  /**
+   * 选中的数是否与当前数的数字相同
+   */
+  isOtherSelectedNumber: boolean;
   onClick?: (e: PointerEvent) => void;
 }>();
 </script>
@@ -19,7 +29,9 @@ defineProps<{
     :class="{
       'value-selected': isValueSelected,
       'value-selected-other': isValueSelectedOther,
+      'value-selected-other-base-index': isValueSelectedOther && item.isBaseIndex,
       'base-index': item.isBaseIndex,
+      'value-other-selected-number': isOtherSelectedNumber,
       invalid: item.isInvalid,
     }"
     @click="onClick"
@@ -49,12 +61,20 @@ defineProps<{
 }
 
 .value-selected-other {
-  background: #f5f5f5;
+  background: #d4eaff;
 }
 
 .base-index {
   background: #e8f5e9;
   font-weight: bold;
+}
+
+.value-selected-other-base-index {
+  background: #e3fdfb;
+}
+
+.value-other-selected-number {
+  background: #ffe0e0;
 }
 
 .invalid {
@@ -77,7 +97,26 @@ button {
   margin: 0;
 }
 
-button:hover {
+button:not(.base-index):hover {
   background: #f5f5f5;
+}
+
+.small-numbers {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  width: 100%;
+  height: 100%;
+  font-size: 0.6em;
+  gap: 1px;
+  padding: 2px;
+}
+
+.small-number-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  min-width: 0;
 }
 </style>
