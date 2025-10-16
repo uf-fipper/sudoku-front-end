@@ -22,6 +22,6 @@ function getDifficultyText(emptyCount: number) {
   <div>游戏ID: {{ game.gameId }}</div>
   <div>Seed: {{ game.seed }}</div>
   <div>状态: {{ game.isWin ? '胜利' : '未完成' }}</div>
-  <div>空格数：{{ game.boardEmptyCount }}</div>
-  <div>难度：{{ getDifficultyText(game.boardEmptyCount) }}</div>
+  <div>剩余空格数：{{ game.boardEmptyCount }}</div>
+  <div>难度：{{ getDifficultyText(game.startBoardEmptyCount) }}</div>
 </template>

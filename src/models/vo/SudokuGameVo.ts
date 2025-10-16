@@ -5,4 +5,5 @@ export interface SudokuGamePublicVo {
   seed: number;
   isWin: boolean;
   boardEmptyCount: number;
+  startBoardEmptyCount: number;
 }
