@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import { getGame, newGame, setValue } from '@/api/sudoku';
 import type { SudokuGamePublicVo } from '@/models/vo/SudokuGameVo';
 import { useRoute, useRouter } from 'vue-router';
+import SudokuView from '@/components/SudokuView.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -76,17 +77,6 @@ function startGame() {
 function isBaseIndex(row: number, col: number): boolean {
   if (game.value === undefined) return false;
   return game.value.baseIndexs.has(`${row},${col}`);
-}
-
-function isValueSelected(row: number, col: number) {
-  return game.value?.valueSelectedItem?.[0] === row && game.value?.valueSelectedItem?.[1] === col;
-}
-
-function isValueSelectedOther(row: number, col: number) {
-  return (
-    !isValueSelected(row, col) &&
-    (game.value?.valueSelectedItem?.[0] === row || game.value?.valueSelectedItem?.[1] === col)
-  );
 }
 
 function handleClick(row: number, col: number) {
@@ -210,30 +200,11 @@ function goBack() {
         {{ game.isSmallNumberMode ? '切换到大数字模式' : '切换到小数字模式' }}
       </button>
     </div>
-    <div class="sudoku-view">
-      <table>
-        <tbody>
-          <tr v-for="(line, i) in game.sudokuValues" :key="`sudoku-line-${i}`">
-            <td v-for="(item, j) in line" :key="`sudoku-item-${i}-${j}`">
-              <button
-                :class="{
-                  'value-selected': isValueSelected(i, j),
-                  'value-selected-other': isValueSelectedOther(i, j),
-                  'base-index': item.isBaseIndex,
-                  invalid: item.isInvalid,
-                }"
-                @click="handleClick(i, j)"
-              >
-                <span v-if="item.value !== 0">{{ item.value }}</span>
-                <div v-if="item.smallNumbers.length > 0" class="small-numbers">
-                  <span v-for="num in item.smallNumbers" :key="num">{{ num }}</span>
-                </div>
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <SudokuView
+      :sudoku-values="game.sudokuValues"
+      :value-selected-item="game.valueSelectedItem"
+      :handle-click="handleClick"
+    ></SudokuView>
     <div class="bottom-buttons">
       <table>
         <tbody>
@@ -294,44 +265,6 @@ function goBack() {
   content: '';
   display: block;
   padding-bottom: 100%;
-}
-
-.sudoku-view button {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  border: none;
-  background: #fff;
-  font-size: 1.5em;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0;
-}
-
-.sudoku-view button:hover {
-  background: #f5f5f5;
-}
-
-.sudoku-view button.value-selected {
-  background: #e3f2fd;
-  color: #1976d2;
-}
-
-.sudoku-view button.value-selected-other {
-  background: #f5f5f5;
-}
-
-.sudoku-view button.base-index {
-  background: #e8f5e9;
-  font-weight: bold;
-}
-
-.sudoku-view button.invalid {
-  color: #f44336;
 }
 
 .bottom-buttons {
