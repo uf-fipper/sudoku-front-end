@@ -4,6 +4,7 @@ import type { BaseVo } from '@/models/vo/BaseVo';
 import type { SudokuGamePublicVo } from '@/models/vo/SudokuGameVo';
 import type { SudokuListVo } from '@/models/vo/SudokuListVo';
 import type { SudokuSetValueVo } from '@/models/vo/SudokuSetValueVo';
+import type { SudokuWebSocketBaseVo } from '@/models/vo/SudokuWebSocketBaseVo';
 import axios, { type AxiosResponse } from 'axios';
 
 const baseHost: string = import.meta.env.VITE_BASE_HOST;
@@ -38,7 +39,47 @@ export function setValue(dto: SudokuSetValueDto): Promise<AxiosResponse<BaseVo<S
   });
 }
 
-export function wsConnect(gameId: string): WebSocket {
-  const wsUrl = baseWsUrl;
-  return new WebSocket(`${wsUrl}/Sudoku/Connect?gameId=${gameId}`);
+export class WebSocketApiManager {
+  ws: WebSocket;
+
+  private callbacks: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [key: string]: (data: any) => void;
+  } = {};
+
+  constructor(gameId: string) {
+    const wsUrl = baseWsUrl;
+    this.ws = new WebSocket(`${wsUrl}/Sudoku/Connect?gameId=${gameId}`);
+    this.ws.onmessage = (event) => {
+      const data: BaseVo<SudokuWebSocketBaseVo> = JSON.parse(event.data);
+      console.log(data);
+      const type = data.data.type;
+      this.callbacks[type]?.(data.data.data);
+    };
+  }
+
+  close(code?: number, reason?: string) {
+    this.ws.close(code, reason);
+  }
+
+  onmessage<T>(type: string, callback: (data: T) => void) {
+    this.callbacks[type] = callback;
+  }
+
+  send(data: string | ArrayBufferLike | Blob | ArrayBufferView<ArrayBufferLike>) {
+    this.ws.send(data);
+  }
+
+  private sendJson(type: string, data: unknown) {
+    this.ws.send(JSON.stringify({ type, data }));
+  }
+
+  sendSetValue(data: SudokuSetValueDto) {
+    console.log(data);
+    this.sendJson('SetValue', data);
+  }
+
+  sendSetSendSolve(data: boolean) {
+    this.sendJson('SetSendSolve', { sendSolve: data });
+  }
 }

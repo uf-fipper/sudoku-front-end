@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
-import { getGame, wsConnect } from '@/api/sudoku';
+import { getGame, WebSocketApiManager } from '@/api/sudoku';
 import type { SudokuGamePublicVo } from '@/models/vo/SudokuGameVo';
 import { useRoute, useRouter } from 'vue-router';
-import type { BaseVo } from '@/models/vo/BaseVo';
-import type { SudokuWebSocketBaseVo } from '@/models/vo/SudokuWebSocketBaseVo';
 import type { SudokuSetValueVo } from '@/models/vo/SudokuSetValueVo';
 import SudokuView from '@/components/SudokuView.vue';
 
@@ -30,7 +28,7 @@ interface Game {
 }
 
 const game = ref<Game>();
-let socket: WebSocket | null = null;
+let manager: WebSocketApiManager | undefined = undefined;
 
 function getSelectedValue(): number | undefined {
   const valueSelectedItem = game.value?.valueSelectedItem;
@@ -87,15 +85,13 @@ function startGame() {
   }
   getGame(gameId).then((res) => {
     resetGame(res.data.data);
-    socket = wsConnect(gameId);
-    socket.onmessage = (event) => {
-      const data: BaseVo<SudokuWebSocketBaseVo> = JSON.parse(event.data);
-      console.log(data);
-      if (data.data.type === 'SetValue') {
-        const setValueData = data.data.data as SudokuSetValueVo;
-        resetGame(setValueData.game);
-      }
-    };
+    manager = new WebSocketApiManager(gameId);
+    manager.onmessage<SudokuSetValueVo>('SetValue', (data) => {
+      resetGame(data.game);
+    });
+    manager.onmessage<SudokuGamePublicVo>('Game', (data) => {
+      resetGame(data);
+    });
   });
 }
 
@@ -121,17 +117,12 @@ function handleClick(row: number, col: number) {
       }
     } else {
       // 大数字模式
-      socket?.send(
-        JSON.stringify({
-          type: 'SetValue',
-          data: {
-            gameId: game.value.gameId,
-            i: row,
-            j: col,
-            value: game.value.bottomSelectedItem,
-          },
-        }),
-      );
+      manager?.sendSetValue({
+        gameId: game.value.gameId,
+        i: row,
+        j: col,
+        value: game.value.bottomSelectedItem,
+      });
     }
   }
   if (
@@ -204,8 +195,8 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  if (socket) {
-    socket.close();
+  if (manager) {
+    manager.close();
   }
 });
 </script>
