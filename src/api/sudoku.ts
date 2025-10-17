@@ -42,6 +42,8 @@ export function setValue(dto: SudokuSetValueDto): Promise<AxiosResponse<BaseVo<S
 export class WebSocketApiManager {
   ws: WebSocket;
 
+  nowMessageSeq: number = -1;
+
   private callbacks: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: (data: any) => void;
@@ -52,6 +54,9 @@ export class WebSocketApiManager {
     this.ws = new WebSocket(`${wsUrl}/Sudoku/Connect?gameId=${gameId}`);
     this.ws.onmessage = (event) => {
       const data: BaseVo<SudokuWebSocketBaseVo> = JSON.parse(event.data);
+      // 判断seq，过滤掉过期消息
+      if (data.data.messageSeq <= this.nowMessageSeq) return;
+      this.nowMessageSeq = data.data.messageSeq;
       console.log(data);
       const type = data.data.type;
       this.callbacks[type]?.(data.data.data);
