@@ -5,5 +5,6 @@ export interface SudokuGamePublicVo {
   seed: number;
   isWin: boolean;
   boardEmptyCount: number;
+  correctMap?: number[][];
   startBoardEmptyCount: number;
 }

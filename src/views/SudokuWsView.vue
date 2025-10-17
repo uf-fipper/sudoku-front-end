@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
-import { getGame, WebSocketApiManager } from '@/api/sudoku';
+import { WebSocketApiManager } from '@/api/sudoku';
 import type { SudokuGamePublicVo } from '@/models/vo/SudokuGameVo';
 import { useRoute, useRouter } from 'vue-router';
 import type { SudokuSetValueVo } from '@/models/vo/SudokuSetValueVo';
@@ -56,7 +56,7 @@ function resetGame(newGame: SudokuGamePublicVo) {
     bottomSelectedItem,
     baseIndexs,
     rawGame: newGame,
-    isSmallNumberMode: false,
+    isSmallNumberMode: game.value?.isSmallNumberMode ?? false,
   };
   if (game.value !== undefined) {
     for (let i = 0; i < size; i++) {
@@ -83,15 +83,12 @@ function startGame() {
     console.error('Invalid gameId');
     return;
   }
-  getGame(gameId).then((res) => {
-    resetGame(res.data.data);
-    manager = new WebSocketApiManager(gameId);
-    manager.onmessage<SudokuSetValueVo>('SetValue', (data) => {
-      resetGame(data.game);
-    });
-    manager.onmessage<SudokuGamePublicVo>('Game', (data) => {
-      resetGame(data);
-    });
+  manager = new WebSocketApiManager(gameId);
+  manager.onmessage<SudokuSetValueVo>('SetValue', (data) => {
+    resetGame(data.game);
+  });
+  manager.onmessage<SudokuGamePublicVo>('Game', (data) => {
+    resetGame(data);
   });
 }
 
@@ -139,9 +136,23 @@ function handleClick(row: number, col: number) {
 
 function handleInvalid() {
   if (game.value === undefined) return;
-  for (let i = 0; i < 9; i++) {
-    for (let j = 0; j < 9; j++) {
-      game.value.sudokuValues[i][j].isInvalid = checkInvalidNumberOnce(i, j);
+  const size = game.value.rawGame.board.length;
+  // 非提示状态
+  if (game.value.rawGame.correctMap?.[0] === undefined) {
+    for (let i = 0; i < 9; i++) {
+      for (let j = 0; j < 9; j++) {
+        game.value.sudokuValues[i][j].isInvalid = checkInvalidNumberOnce(i, j);
+      }
+    }
+  }
+  // 提示状态
+  else {
+    for (let i = 0; i < size; i++) {
+      for (let j = 0; j < size; j++) {
+        if (!game.value.rawGame.correctMap[i][j]) {
+          game.value.sudokuValues[i][j].isInvalid = true;
+        }
+      }
     }
   }
 }
@@ -186,6 +197,12 @@ function toggleSmallNumberMode() {
   game.value.isSmallNumberMode = !game.value.isSmallNumberMode;
 }
 
+function toggleHintMode() {
+  if (game.value === undefined || manager === undefined) return;
+  const isHintEnabled = game.value.rawGame.correctMap !== null;
+  manager.sendSetSendSolve(!isHintEnabled);
+}
+
 function goBack() {
   router.push('/sudoku-list');
 }
@@ -223,6 +240,9 @@ onUnmounted(() => {
       <div class="mode-toggle">
         <button @click="toggleSmallNumberMode" class="mode-button">
           {{ game.isSmallNumberMode ? '小' : '大' }}
+        </button>
+        <button @click="toggleHintMode" class="mode-button">
+          {{ game.rawGame.correctMap === null ? '开启提示' : '关闭提示' }}
         </button>
       </div>
       <table>

@@ -32,11 +32,10 @@ defineProps<{
       'value-selected-other-base-index': isValueSelectedOther && item.isBaseIndex,
       'base-index': item.isBaseIndex,
       'value-other-selected-number': isOtherSelectedNumber,
-      invalid: item.isInvalid,
     }"
     @click="onClick"
   >
-    <span v-if="item.value !== 0">{{ item.value }}</span>
+    <span v-if="item.value !== 0" :class="{ invalid: item.isInvalid }">{{ item.value }}</span>
     <div v-else class="small-numbers">
       <div v-for="num in [1, 2, 3]" :key="`small-${num}`" class="small-number-row">
         <span v-if="item.smallNumbers.includes(num)">{{ num }}</span>
